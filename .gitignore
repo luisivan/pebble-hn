@@ -1,0 +1,5 @@
+.lock-waf_linux2_build
+*.sublime*
+
+# Ignore build generated files
+build

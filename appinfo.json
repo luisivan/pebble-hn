@@ -1,0 +1,30 @@
+{
+  "uuid": "7401b382-f849-4392-a91d-144bde220aac",
+  "shortName": "Hacker News",
+  "longName": "Hacker News for Pebble",
+  "companyName": "Luis Ivan Cuende",
+  "versionCode": 1,
+  "versionLabel": "1.0.0",
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {
+    "title": 0,
+    "points": 1,
+    "comments": 2,
+    "summary": 3,
+    "get": 4,
+    "fetch": 5,
+    "index": 6
+  },
+  "resources": {
+    "media": [
+      {
+        "type": "png",
+        "name": "ICON",
+        "file": "icon.png",
+        "menuIcon": true
+      }
+    ]
+  }
+}
