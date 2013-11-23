@@ -3,6 +3,5 @@ pebble-hn
 
 Hacker News for Pebble
 
-
-[Imgur](http://i.imgur.com/yRkNXCa)
-[Imgur](http://i.imgur.com/Owig2x7)
+![Hacker News for Pebble](http://i.imgur.com/yRkNXCa)
+![Hacker News for Pebble](http://i.imgur.com/Owig2x7)
