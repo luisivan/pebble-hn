@@ -18,7 +18,7 @@ enum {
 
 static ScrollLayer *scroll_layer;
 static TextLayer *text_layer;
-static InverterLayer *inverter_layer;
+
 
 // TODO
 /*static ActionBarLayer *action_bar;
@@ -56,14 +56,11 @@ static void view_load(Window *window) {
     scroll_layer_set_content_size(scroll_layer, GSize(bounds.size.w, max_size.h));
     scroll_layer_add_child(scroll_layer, text_layer_get_layer(text_layer));
 
-    inverter_layer = inverter_layer_create(GRect(0, 0, bounds.size.w, 28));
-    scroll_layer_add_child(scroll_layer, inverter_layer_get_layer(inverter_layer));
-
     layer_add_child(window_layer, scroll_layer_get_layer(scroll_layer));
 }
 
 static void view_unload(Window *window) {
-    inverter_layer_destroy(inverter_layer);
+    
     text_layer_destroy(text_layer);
     scroll_layer_destroy(scroll_layer);
     window_destroy(window);
