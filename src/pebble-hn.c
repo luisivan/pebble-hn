@@ -148,6 +148,15 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     }
 }
 
+static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+  
+  return MENU_CELL_BASIC_HEADER_HEIGHT;
+}
+
+static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+  menu_cell_basic_header_draw(ctx, cell_layer, "Hacker News");
+}
+
 void get(uint8_t i) {
     DictionaryIterator *it;
     app_message_outbox_begin(&it);
@@ -182,6 +191,8 @@ void window_load(Window *window) {
         .get_num_rows = menu_get_num_rows_callback,
         .draw_row = menu_draw_row_callback,
         .select_click = menu_select_callback,
+        .get_header_height = menu_get_header_height_callback,
+        .draw_header = menu_draw_header_callback,
     });
 
     menu_layer_set_click_config_onto_window(menu_layer, window);
