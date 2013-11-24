@@ -18,7 +18,7 @@ enum {
 
 static ScrollLayer *scroll_layer;
 static TextLayer *text_layer;
-static InverterLayer *inverter_layer;
+static TextLayer *title_layer;
 
 // TODO
 /*static ActionBarLayer *action_bar;
@@ -34,52 +34,6 @@ void click_config_provider(void *context) {
   // The loading the icons is omitted for brevity... See HeapBitmap.
   action_bar_layer_set_icon(action_bar, BUTTON_ID_UP, &my_icon_previous);
   action_bar_layer_set_icon(action_bar, BUTTON_ID_DOWN, &my_icon_next);*/
-
-
-char summary[1000];
-
-static void view_load(Window *window) {
-    Layer *window_layer = window_get_root_layer(window);
-    GRect bounds = layer_get_bounds(window_layer);
-    GRect max_text_bounds = GRect(0, 0, bounds.size.w, 2000);
-
-    scroll_layer = scroll_layer_create(bounds);
-    scroll_layer_set_click_config_onto_window(scroll_layer, window);
-
-    text_layer = text_layer_create(max_text_bounds);
-    text_layer_set_text(text_layer, summary);
-
-    text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-
-    GSize max_size = text_layer_get_content_size(text_layer);
-    text_layer_set_size(text_layer, max_size);
-    scroll_layer_set_content_size(scroll_layer, GSize(bounds.size.w, max_size.h));
-    scroll_layer_add_child(scroll_layer, text_layer_get_layer(text_layer));
-
-    inverter_layer = inverter_layer_create(GRect(0, 0, bounds.size.w, 28));
-    scroll_layer_add_child(scroll_layer, inverter_layer_get_layer(inverter_layer));
-
-    layer_add_child(window_layer, scroll_layer_get_layer(scroll_layer));
-}
-
-static void view_unload(Window *window) {
-    inverter_layer_destroy(inverter_layer);
-    text_layer_destroy(text_layer);
-    scroll_layer_destroy(scroll_layer);
-    window_destroy(window);
-}
-
-void view() {
-    Window *view = window_create();
-    window_set_window_handlers(view, (WindowHandlers) {
-        .load = view_load,
-        .unload = view_unload,
-    });
-    window_stack_push(view, true);
-}
-
-
-/**/
 
 #define NUM_ITEMS 30
 
@@ -97,6 +51,59 @@ int i=0;
 // SEE http://forums.getpebble.com/discussion/8582/bug-pebble-logs-fails-with-ascii-codec-can-t-encode-character-u-xfc-in-position
 
 static char subtitle[] = "0 points and 0 comments";
+
+int selected = 0;
+char summary[1000];
+#define spacing 10
+
+static void view_load(Window *window) {
+    Layer *window_layer = window_get_root_layer(window);
+    GRect bounds = layer_get_bounds(window_layer);
+    GRect max_text_bounds = GRect(0, 0, bounds.size.w, 2000);
+
+    scroll_layer = scroll_layer_create(bounds);
+    scroll_layer_set_click_config_onto_window(scroll_layer, window);
+
+    title_layer = text_layer_create(max_text_bounds);
+    text_layer_set_text(title_layer, posts[selected].title);
+    text_layer_set_font(title_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+
+    GSize title_size = text_layer_get_content_size(title_layer);
+    text_layer_set_size(title_layer, title_size);
+
+    text_layer = text_layer_create(GRect(0, title_size.h+spacing, max_text_bounds.size.w, max_text_bounds.size.h-(title_size.h+spacing)));
+    text_layer_set_text(text_layer, summary);
+    text_layer_set_font(text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
+
+    GSize max_size = text_layer_get_content_size(text_layer);
+    text_layer_set_size(text_layer, GSize(max_size.w, max_size.h+spacing));
+
+    scroll_layer_set_content_size(scroll_layer, GSize(bounds.size.w, title_size.h+spacing+max_size.h));
+    scroll_layer_add_child(scroll_layer, text_layer_get_layer(title_layer));
+    scroll_layer_add_child(scroll_layer, text_layer_get_layer(text_layer));
+
+    layer_add_child(window_layer, scroll_layer_get_layer(scroll_layer));
+}
+
+static void view_unload(Window *window) {
+
+    text_layer_destroy(text_layer);
+    scroll_layer_destroy(scroll_layer);
+    window_destroy(window);
+}
+
+void view() {
+    Window *view = window_create();
+    window_set_window_handlers(view, (WindowHandlers) {
+        .load = view_load,
+        .unload = view_unload,
+    });
+    window_stack_push(view, true);
+}
+
+
+/**/
+
 
 static void msg_received(DictionaryIterator *iter, void *context) {
     Tuple *title = dict_find(iter, KEY_TITLE);
@@ -141,6 +148,15 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
     }
 }
 
+static int16_t menu_get_header_height_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+  
+  return MENU_CELL_BASIC_HEADER_HEIGHT;
+}
+
+static void menu_draw_header_callback(GContext* ctx, const Layer *cell_layer, uint16_t section_index, void *data) {
+  menu_cell_basic_header_draw(ctx, cell_layer, "Hacker News");
+}
+
 void get(uint8_t i) {
     DictionaryIterator *it;
     app_message_outbox_begin(&it);
@@ -163,6 +179,7 @@ void fetch() {
 void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
     //fetch();
     summary[0] = *"\0";
+    selected = cell_index->row;
     get(posts[cell_index->row].index);
 }
 
@@ -174,6 +191,8 @@ void window_load(Window *window) {
         .get_num_rows = menu_get_num_rows_callback,
         .draw_row = menu_draw_row_callback,
         .select_click = menu_select_callback,
+        .get_header_height = menu_get_header_height_callback,
+        .draw_header = menu_draw_header_callback,
     });
 
     menu_layer_set_click_config_onto_window(menu_layer, window);
