@@ -15,7 +15,8 @@
     "summary": 3,
     "get": 4,
     "fetch": 5,
-    "index": 6
+    "index": 6,
+    "readlater":7
   },
   "resources": {
     "media": [
@@ -26,5 +27,6 @@
         "menuIcon": true
       }
     ]
-  }
+  },
+  "capabilities":["configurable"]
 }
