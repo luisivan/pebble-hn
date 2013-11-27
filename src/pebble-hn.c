@@ -11,6 +11,7 @@ enum {
   KEY_GET = 0x4,
   KEY_FETCH = 0x5,
   KEY_INDEX = 0x6,
+  KEY_READLATER = 0x7
 };
 
 /**/
@@ -53,9 +54,29 @@ int i=0;
 static char subtitle[] = "0 points and 0 comments";
 
 int selected = 0;
-char summary[1000];
+int selected_index = 0;
+char summary[1024];
 #define spacing 10
 
+void readlater(uint8_t i) {
+    DictionaryIterator *it;
+    app_message_outbox_begin(&it);
+    Tuplet tuplet = TupletInteger(KEY_READLATER, i);
+    dict_write_tuplet(it, &tuplet);
+    dict_write_end(it);
+    app_message_outbox_send();
+}
+
+static void long_click_handler (ClickRecognizerRef recognizer, void *context){
+
+    readlater(selected_index);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Read Later do");
+}
+
+static void click_config_provider(void *context) {
+
+    window_long_click_subscribe(BUTTON_ID_SELECT, 500, NULL, long_click_handler);
+}
 static void view_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
@@ -81,6 +102,12 @@ static void view_load(Window *window) {
     scroll_layer_set_content_size(scroll_layer, GSize(bounds.size.w, title_size.h+spacing+max_size.h));
     scroll_layer_add_child(scroll_layer, text_layer_get_layer(title_layer));
     scroll_layer_add_child(scroll_layer, text_layer_get_layer(text_layer));
+
+    scroll_layer_set_click_config_onto_window(scroll_layer, window);
+
+
+    scroll_layer_set_callbacks(scroll_layer, (ScrollLayerCallbacks){.click_config_provider=click_config_provider});
+
 
     layer_add_child(window_layer, scroll_layer_get_layer(scroll_layer));
 }
@@ -123,8 +150,8 @@ static void msg_received(DictionaryIterator *iter, void *context) {
         if (strcmp(sum->value->cstring, "end") == 0) {
             view();
         } else {
-            char s[128];
-            strncpy(s, sum->value->cstring, 128);
+            char s[512];
+            strncpy(s, sum->value->cstring, 512);
             strcat(summary, s);
         }
         sum = NULL;
@@ -167,20 +194,22 @@ void get(uint8_t i) {
 }
 
 void fetch() {
-    uint8_t i = 0;
     DictionaryIterator *it;
     app_message_outbox_begin(&it);
-    Tuplet tuplet = TupletInteger(KEY_FETCH, i);
+    Tuplet tuplet = TupletInteger(KEY_FETCH, 0);
     dict_write_tuplet(it, &tuplet);
     dict_write_end(it);
     app_message_outbox_send();
 }
 
 void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
-    //fetch();
     summary[0] = *"\0";
     selected = cell_index->row;
-    get(posts[cell_index->row].index);
+    selected_index = posts[cell_index->row].index;
+    get(selected_index);
+}
+void menu_long_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+    readlater(posts[cell_index->row].index);
 }
 
 void window_load(Window *window) {
@@ -193,17 +222,17 @@ void window_load(Window *window) {
         .select_click = menu_select_callback,
         .get_header_height = menu_get_header_height_callback,
         .draw_header = menu_draw_header_callback,
+        .select_long_click = menu_long_select_callback
     });
 
     menu_layer_set_click_config_onto_window(menu_layer, window);
     layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
-    //fetch();
+    fetch();
 }
 
 void window_unload(Window *window) {
     menu_layer_destroy(menu_layer);
 }
-
 
 void init(void) {
     window = window_create();
@@ -214,7 +243,7 @@ void init(void) {
     window_stack_push(window, true);
 
     app_message_register_inbox_received(msg_received);
-    app_message_open(128, 128);
+    app_message_open(2044, 512);
 }
 
 int main(void) {
