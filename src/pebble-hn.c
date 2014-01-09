@@ -11,11 +11,10 @@ enum {
   KEY_GET = 0x4,
   KEY_FETCH = 0x5,
   KEY_INDEX = 0x6,
-  KEY_READLATER = 0x7
+  KEY_READLATER = 0x7,
+  KEY_START = 0x8,
+  KEY_END = 0x9
 };
-
-/**/
-
 
 static ScrollLayer *scroll_layer;
 static TextLayer *text_layer;
@@ -51,7 +50,7 @@ int i=0;
 
 // SEE http://forums.getpebble.com/discussion/8582/bug-pebble-logs-fails-with-ascii-codec-can-t-encode-character-u-xfc-in-position
 
-static char subtitle[] = "0 points and 0 comments";
+static char subtitle[] = "0 points · 0 comments";
 
 int selected = 0;
 int selected_index = 0;
@@ -129,9 +128,6 @@ void view() {
 }
 
 
-/**/
-
-
 static void msg_received(DictionaryIterator *iter, void *context) {
     Tuple *title = dict_find(iter, KEY_TITLE);
     if (title) {
@@ -139,25 +135,18 @@ static void msg_received(DictionaryIterator *iter, void *context) {
         p.index = dict_find(iter, KEY_INDEX)->value->int8;
         strncpy(p.title, title->value->cstring, 128);
         //APP_LOG(APP_LOG_LEVEL_DEBUG, "dada %s", p.title);
-        snprintf(p.subtitle, sizeof(subtitle), "%i points and %i comments", dict_find(iter, KEY_POINTS)->value->int16, dict_find(iter, KEY_COMMENTS)->value->int16);
+        snprintf(p.subtitle, sizeof(subtitle), "%i points · %i comments", dict_find(iter, KEY_POINTS)->value->int16, dict_find(iter, KEY_COMMENTS)->value->int16);
         posts[i++] = p;
-        //if (i == NUM_ITEMS) {
-            menu_layer_reload_data(menu_layer);
-            layer_mark_dirty(menu_layer_get_layer(menu_layer));
-        //}
+        menu_layer_reload_data(menu_layer);
+        layer_mark_dirty(menu_layer_get_layer(menu_layer));
     } else {
-        Tuple *sum = dict_find(iter, KEY_SUMMARY);
-        if (strcmp(sum->value->cstring, "end") == 0) {
-            view();
-        } else {
-            char s[512];
-            strncpy(s, sum->value->cstring, 512);
-            strcat(summary, s);
-        }
-        sum = NULL;
+        if (dict_find(iter, KEY_START)) strcpy(summary, "");
+
+        strcat(summary, dict_find(iter, KEY_SUMMARY)->value->cstring);
+
+        if (dict_find(iter, KEY_END)) view();
     }
     title = NULL;
-
 }
 
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
@@ -235,15 +224,15 @@ void window_unload(Window *window) {
 }
 
 void init(void) {
+    app_message_register_inbox_received(msg_received);
+    app_message_open(app_message_inbox_size_maximum(), 512);
+
     window = window_create();
     window_set_window_handlers(window, (WindowHandlers) {
         .load = window_load,
         .unload = window_unload,
     });
     window_stack_push(window, true);
-
-    app_message_register_inbox_received(msg_received);
-    app_message_open(2044, 512);
 }
 
 int main(void) {
